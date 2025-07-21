@@ -6,7 +6,7 @@ import os
 
 load_dotenv()
 
-# Conexión a la base de datos
+# Connect to the database
 def get_conn():
     return psycopg2.connect(
         host=os.getenv("DB_HOST"),
@@ -22,13 +22,13 @@ HEADERS = {
 
 BASE_URL = "https://api.weather.gov"
 
-# Obtener info de estación
+# Fetch station metadata
 def fetch_station_info(station_id):
     r = requests.get(f"{BASE_URL}/stations/{station_id}", headers=HEADERS)
     r.raise_for_status()
     return r.json()
 
-# Obtener observaciones de últimos 7 días
+# Fetch last 7 days of observations
 def fetch_observations(station_id):
     start = (datetime.utcnow() - timedelta(days=7)).isoformat()
     url = f"{BASE_URL}/stations/{station_id}/observations"
@@ -36,6 +36,7 @@ def fetch_observations(station_id):
     r.raise_for_status()
     return r.json()
 
+# Insert station info into DB
 def insert_station(conn, data):
     props = data["properties"]
     coords = data["geometry"]["coordinates"]
@@ -53,6 +54,7 @@ def insert_station(conn, data):
         ))
     conn.commit()
 
+# Insert observation data into DB
 def insert_observations(conn, station_id, obs_data):
     with conn.cursor() as cur:
         for o in obs_data.get("features", []):
@@ -70,5 +72,5 @@ def insert_observations(conn, station_id, obs_data):
                     round(p["relativeHumidity"]["value"] or 0, 2)
                 ))
             except Exception as e:
-                print(f"Error insertando una observación: {e}")
+                print(f"Error inserting observation: {e}")
     conn.commit()
